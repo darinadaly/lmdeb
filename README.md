@@ -24,3 +24,5 @@
 **other:**
 `pip install batman-package`
 `conda install libpython`
+`conda install mkl-service`
+
