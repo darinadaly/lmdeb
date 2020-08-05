@@ -10,22 +10,20 @@ environment setup:
 
 **theano:**
 `conda install numpy scipy mkl <nose> <sphinx> <pydot-ng>`
-  **note**: was unable to use <> in zsh at least, so I used:
-`conda install numpy scipy mkl`
-`pip install parameterized`
-`pip install nose`
-`conda install theano pygpu`
+  **note**: was unable to use <> in zsh at least, so I used instead:
+`conda install numpy scipy mkl theano pygpu nose parameterized`
 
 **pymc3:**
 `conda install -c conda-forge pymc3`
 
 **exoplanet:**
+`conda install -c conda-forge exoplanet`
+**or**
 `git clone https://github.com/exoplanet-dev/exoplanet.git`
 `cd exoplanet`
 `python -m pip install -e .`
 
 **other:**
-`pip install batman-package`
-`conda install libpython`
-`conda install mkl-service`
+`conda install batman-package libpython mkl-service`
+
 
