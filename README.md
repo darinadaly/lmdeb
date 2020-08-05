@@ -17,6 +17,7 @@ cd exoplanet
 python -m pip install -e .`
 
 **other:**
-`conda install numpy scipy mkl mkl-service nose parameterized pygpu`
+`conda install mkl-service`
+
 
 
