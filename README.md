@@ -5,6 +5,9 @@ environment setup:
  `python -m pip install -U pip`
 `python -m pip install -U matplotlib`
 
+**lightkurve:**
+`conda install --channel conda-forge lightkurve`
+
 **theano:**
 `conda install numpy scipy mkl <nose> <sphinx> <pydot-ng>`
   **note**: was unable to use <> in zsh at least, so I used:
