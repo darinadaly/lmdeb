@@ -19,5 +19,3 @@ python -m pip install -e .`
 **other:**
 `conda install mkl-service`
 
-
-
