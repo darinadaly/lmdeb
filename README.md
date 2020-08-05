@@ -1,6 +1,7 @@
 # lmdeb
 environment setup:
 
+**jupyter lab:**
 `conda install -c conda-forge jupyterlab`
 
 **matplotlib:**
