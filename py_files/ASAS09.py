@@ -1,4 +1,5 @@
 # ASAS-21
+# python3 /users/darinadaly/lmdeb//py_files/HD23642_example.py
 
 #%matplotlibinline
 #run notebook_setup:
@@ -109,8 +110,8 @@ plt.show()
 import multiprocessing as mp
 mp.set_start_method("fork")
 
-import theano
-theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+# import theano
+# theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
 import pymc3 as pm
 import theano.tensor as tt
@@ -369,6 +370,6 @@ with model:
         draws=3000,
         start=map_soln,
         chains=4,
-      #  initial_accept=0.8,
+        initial_accept=0.8,
         target_accept=0.95,
     )
