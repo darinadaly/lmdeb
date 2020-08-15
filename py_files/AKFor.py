@@ -124,8 +124,8 @@ plt.show()
 import multiprocessing as mp
 mp.set_start_method("fork")
 
-import theano
-theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+# import theano
+# theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
 
 import pymc3 as pm
 import theano.tensor as tt
