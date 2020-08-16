@@ -1,11 +1,14 @@
-# AK For
-# python3 /users/darinadaly/lmdeb//py_files/AKFor.py
+# example notebook for HD 23642
+# python3 /users/darinadaly/lmdeb//py_files/HD23642_example.py
 
-# %matplotlibinline
-#run notebook_setup:
+
+
+
+#%matplotlib inline
+#%run notebook_setup
 """isort:skip_file"""
 
-# get_ipython().magic('config InlineBackend.figure_format = "retina"')
+#get_ipython().magic('config InlineBackend.figure_format = "retina"')
 
 import os
 import logging
@@ -42,28 +45,27 @@ plt.rcParams["mathtext.fontset"] = "custom"
 
 
 
-# data access
-lit_period = 3.9809913  # days
-lit_t0 = 2451903.2681 - 2457000
+# DATA ACCESS
+lit_period = 2.46113408
+lit_t0 = 119.522070 + 2457000 - 2454833
 # Prior on the flux ratio for Kepler
-lit_flux_ratio = (0.423, 0.1)
+lit_flux_ratio = (0.354, 0.035)
 
 import numpy as np
 import matplotlib.pyplot as plt
 import lightkurve as lk
 
-tpf = lk.search_targetpixelfile("AK Fornacis", mission=('TESS')).download()  # TIC ID
+#light curve
+tpf = lk.search_targetpixelfile("EPIC 211082420").download()
 lc = tpf.to_lightcurve(aperture_mask="all")
 lc = lc.remove_nans().normalize()
-
-lc_clean = lc.remove_outliers(sigma=10)
 
 hdr = tpf.hdu[1].header
 texp = hdr["FRAMETIM"] * hdr["NUM_FRM"]
 texp /= 60.0 * 60.0 * 24.0
 
-x = np.ascontiguousarray(lc_clean.time, dtype=np.float64)
-y = np.ascontiguousarray(lc_clean.flux, dtype=np.float64)
+x = np.ascontiguousarray(lc.time, dtype=np.float64)
+y = np.ascontiguousarray(lc.flux, dtype=np.float64)
 mu = np.median(y)
 y = (y / mu - 1) * 1e3
 
@@ -73,36 +75,32 @@ plt.xlabel("time since primary eclipse [days]")
 _ = plt.ylabel("relative flux [ppt]")
 plt.show()
 
-ref_date = 2450000
+#RV data
+ref1 = 2453000
+ref2 = 2400000
 rvs = np.array(
     [
-        (5876.681435 + ref_date, -37.483, 46.441),  # (HJD, RV_primary, RV_secondary)
-        (5876.841349 + ref_date, -50.637, 60.928),
-        (5877.644573 + ref_date, -57.370, 67.959),
-        (5877.701489 + ref_date, -53.645, 64.000),
-
-        (5877.783808 + ref_date, -47.668, 57.725),
-        (5878.673272 + ref_date, 42.913, -41.535),
-        (5878.759453 + ref_date, 50.399, -49.798),
-        (5878.810493 + ref_date, 50.399, -49.798),
-
-        (6179.782690 + ref_date, -67.426, 79.214),
-        (6179.879929 + ref_date, -67.687, 79.484),
-        (6195.817064 + ref_date, -67.545, 79.397),
-        (6345.559577 + ref_date, -52.316, -51.594),
-
-        (6346.511053 + ref_date, -44.029, 53.513),
-        (6347.545693 + ref_date, -47.323, 57.305),
-        (6348.542794 + ref_date, 52.439, -52.171),
-        (6349.537454 + ref_date, 52.613, -51.882),
-
-        (6350.536805 + ref_date, -47.586, 57.613),
-        (6376.509645 + ref_date, 59.529, -59.889),
-        (6377.503283 + ref_date, 44.095, -42.758),
-        (6383.474455 + ref_date, -38.866, 47.980),
+        # https://arxiv.org/abs/astro-ph/0403444
+        (39.41273 + ref1, -85.0, 134.5),
+        (39.45356 + ref1, -88.0, 139.0),
+        (39.50548 + ref1, -91.0, 143.0),
+        (43.25049 + ref1, 105.5, -136.0),
+        (46.25318 + ref1, 29.5, -24.5),
+        # https://ui.adsabs.harvard.edu/abs/2007A%26A...463..579G/abstract
+        (52629.6190 + ref2, 88.8, -127.0),
+        (52630.6098 + ref2, -48.0, 68.0),
+        (52631.6089 + ref2, -9.5, 13.1),
+        (52632.6024 + ref2, 63.6, -90.9),
+        (52633.6162 + ref2, -94.5, 135.0),
+        (52636.6055 + ref2, 10.3, -13.9),
+        (52983.6570 + ref2, 18.1, -25.1),
+        (52987.6453 + ref2, -80.6, 114.5),
+        (52993.6322 + ref2, 49.0, -70.7),
+        (53224.9338 + ref2, 39.0, -55.7),
+        (53229.9384 + ref2, 57.2, -82.0),
     ]
 )
-rvs[:, 0] -= 2457000
+rvs[:, 0] -= 2454833
 rvs = rvs[np.argsort(rvs[:, 0])]
 
 x_rv = np.ascontiguousarray(rvs[:, 0], dtype=np.float64)
@@ -120,13 +118,12 @@ plt.show()
 
 
 
-
-# probabilistic model
+# PROBABILISTIC MODEL
 import multiprocessing as mp
 mp.set_start_method("fork")
 
 # import theano
-# theano.config.gcc.cxxflags = "-Wno-c++11-narrowing"
+# theano.config.gcc.cxxflags = "-Wno-c++11-narrowing" 
 
 import pymc3 as pm
 import theano.tensor as tt
@@ -135,7 +132,9 @@ import exoplanet as xo
 
 
 def build_model(mask):
+
     with pm.Model() as model:
+
         # Systemic parameters
         mean_lc = pm.Normal("mean_lc", mu=0.0, sd=5.0)
         mean_rv = pm.Normal("mean_rv", mu=0.0, sd=50.0)
@@ -143,12 +142,12 @@ def build_model(mask):
         u2 = xo.QuadLimbDark("u2")
 
         # Parameters describing the primary
-        M1 = pm.Lognormal("M1", mu=0.0, sigma=10.0, testval=0.696)
-        R1 = pm.Lognormal("R1", mu=0.0, sigma=10.0, testval=0.687)
+        M1 = pm.Lognormal("M1", mu=0.0, sigma=10.0)
+        R1 = pm.Lognormal("R1", mu=0.0, sigma=10.0)
 
         # Secondary ratios
-        k = pm.Lognormal("k", mu=0.0, sigma=10.0, testval=0.9403)  # radius ratio
-        q = pm.Lognormal("q", mu=0.0, sigma=10.0, testval=0.9815)  # mass ratio
+        k = pm.Lognormal("k", mu=0.0, sigma=10.0)  # radius ratio
+        q = pm.Lognormal("q", mu=0.0, sigma=10.0)  # mass ratio
         s = pm.Lognormal("s", mu=np.log(0.5), sigma=10.0)  # surface brightness ratio
 
         # Prior on flux ratio
@@ -223,8 +222,8 @@ def build_model(mask):
 
         def model_lc(t):
             return (
-                    mean_lc
-                    + 1e3 * lc.get_light_curve(orbit=orbit, r=R2, t=t, texp=texp)[:, 0]
+                mean_lc
+                + 1e3 * lc.get_light_curve(orbit=orbit, r=R2, t=t, texp=texp)[:, 0]
             )
 
         # Condition the light curve model on the data
@@ -306,6 +305,8 @@ def sigma_clip():
 
 model, map_soln = sigma_clip()
 
+
+
 period = map_soln["period"]
 t0 = map_soln["t0"]
 mean = map_soln["mean_rv"]
@@ -326,8 +327,9 @@ plt.legend(fontsize=10)
 plt.xlim(-0.5 * period, 0.5 * period)
 plt.ylabel("radial velocity [km / s]")
 plt.xlabel("time since primary eclipse [days]")
-_ = plt.title("AK For; map model", fontsize=14)
+_ = plt.title("HD 23642; map model", fontsize=14)
 plt.show()
+
 
 with model:
     gp_pred = xo.eval_in_model(model.gp_lc.predict(), map_soln) + map_soln["mean_lc"]
@@ -345,8 +347,7 @@ ax2.set_xlim(model.x.min(), model.x.max())
 ax1.set_ylabel("raw flux [ppt]")
 ax2.set_ylabel("de-trended flux [ppt]")
 ax2.set_xlabel("time [KBJD]")
-ax1.set_title("AK For; map model", fontsize=14)
-plt.show()
+ax1.set_title("HD 23642; map model", fontsize=14)
 
 fig.subplots_adjust(hspace=0.05)
 
@@ -374,8 +375,11 @@ ax1.plot(x_fold[inds] - 1, lc[inds], "C2", **args)
 ax1.set_xlim(-1, 1)
 ax1.set_ylabel("de-trended flux [ppt]")
 ax1.set_xlabel("phase")
-_ = ax1.set_title("AK For; map model", fontsize=14)
-plt.show()
+_ = ax1.set_title("HD 23642; map model", fontsize=14)
+
+
+
+
 
 # MCMC
 np.random.seed(23642)
@@ -385,6 +389,94 @@ with model:
         draws=3000,
         start=map_soln,
         chains=4,
-        #  initial_accept=0.8,
+        initial_accept=0.8,
         target_accept=0.95,
     )
+    
+    
+pm.summary(trace, var_names=["M1", "M2", "R1", "R2", "ecs", "incl", "s"])
+
+
+
+
+#RESULTS
+import corner
+samples = pm.trace_to_dataframe(trace, varnames=["k", "q", "ecs"])
+_ = corner.corner(
+    samples,
+    labels=["$k = R_2 / R_1$", "$q = M_2 / M_1$", "$e\,\cos\omega$", "$e\,\sin\omega$"],
+)
+
+
+samples = pm.trace_to_dataframe(trace, varnames=["R1", "R2", "M1", "M2"])
+weights = 1.0 / trace["ecc"]
+weights *= len(weights) / np.sum(weights)
+fig = corner.corner(samples, weights=weights, plot_datapoints=False, color="C1")
+_ = corner.corner(samples, truths=[1.727, 1.503, 2.203, 1.5488], fig=fig)
+
+
+#A note about eccentricities 
+plt.hist(
+    trace["ecc"] * np.sin(trace["omega"]),
+    50,
+    density=True,
+    histtype="step",
+    label="$p(e) = e / 2$",
+)
+plt.hist(
+    trace["ecc"] * np.sin(trace["omega"]),
+    50,
+    density=True,
+    histtype="step",
+    weights=1.0 / trace["ecc"],
+    label="$p(e) = 1$",
+)
+plt.xlabel("$e\,\sin(\omega)$")
+plt.ylabel("$p(e\,\sin\omega\,|\,\mathrm{data})$")
+plt.yticks([])
+plt.legend(fontsize=12)
+plt.show()
+
+plt.figure()
+plt.hist(trace["ecc"], 50, density=True, histtype="step", label="$p(e) = e / 2$")
+plt.hist(
+    trace["ecc"],
+    50,
+    density=True,
+    histtype="step",
+    weights=1.0 / trace["ecc"],
+    label="$p(e) = 1$",
+)
+plt.xlabel("$e$")
+plt.ylabel("$p(e\,|\,\mathrm{data})$")
+plt.yticks([])
+plt.xlim(0, 0.015)
+_ = plt.legend(fontsize=12)
+plt.show()
+
+#
+weights = 1.0 / trace["ecc"]
+print(
+    "for p(e) = e/2: p(e < x) = 0.9 -> x = {0:.5f}".format(
+        corner.quantile(trace["ecc"], [0.9])[0]
+    )
+)
+print(
+    "for p(e) = 1:   p(e < x) = 0.9 -> x = {0:.5f}".format(
+        corner.quantile(trace["ecc"], [0.9], weights=weights)[0]
+    )
+)
+
+
+#
+samples = trace["R1"]
+
+print(
+    "for p(e) = e/2: R1 = {0:.3f} ± {1:.3f}".format(np.mean(samples), np.std(samples))
+)
+
+mean = np.sum(weights * samples) / np.sum(weights)
+sigma = np.sqrt(np.sum(weights * (samples - mean) ** 2) / np.sum(weights))
+print("for p(e) = 1:   R1 = {0:.3f} ± {1:.3f}".format(mean, sigma))
+
+

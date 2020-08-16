@@ -1,0 +1,10 @@
+conda install -c conda-forge jupyterlab
+
+conda install -c conda-forge exoplanet
+
+conda install --channel conda-forge lightkurve
+
+**matplotlib**
+conda config --add channels conda-forge
+conda install matplotlib matplotlib-base mpl_sample_data
+conda search matplotlib --channel conda-forge
