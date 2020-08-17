@@ -371,6 +371,89 @@ with model:
         draws=3000,
         start=map_soln,
         chains=4,
-      #  initial_accept=0.8,
+        initial_accept=0.8,
         target_accept=0.95,
     )
+    
+    
+    
+    
+#RESULTS
+pm.summary(trace, var_names=["M1", "M2", "R1", "R2", "ecs", "incl", "s"])
+
+import corner
+samples = pm.trace_to_dataframe(trace, varnames=["k", "q", "ecs"])
+_ = corner.corner(
+    samples,
+    labels=["$k = R_2 / R_1$", "$q = M_2 / M_1$", "$e\,\cos\omega$", "$e\,\sin\omega$"],
+)
+
+
+samples = pm.trace_to_dataframe(trace, varnames=["R1", "R2", "M1", "M2"])
+weights = 1.0 / trace["ecc"]
+weights *= len(weights) / np.sum(weights)
+fig = corner.corner(samples, weights=weights, plot_datapoints=False, color="C1")
+_ = corner.corner(samples, truths=[1.727, 1.503, 2.203, 1.5488], fig=fig)
+
+
+plt.hist(
+    trace["ecc"] * np.sin(trace["omega"]),
+    50,
+    density=True,
+    histtype="step",
+    label="$p(e) = e / 2$",
+)
+plt.hist(
+    trace["ecc"] * np.sin(trace["omega"]),
+    50,
+    density=True,
+    histtype="step",
+    weights=1.0 / trace["ecc"],
+    label="$p(e) = 1$",
+)
+plt.xlabel("$e\,\sin(\omega)$")
+plt.ylabel("$p(e\,\sin\omega\,|\,\mathrm{data})$")
+plt.yticks([])
+plt.legend(fontsize=12)
+plt.show()
+
+plt.figure()
+plt.hist(trace["ecc"], 50, density=True, histtype="step", label="$p(e) = e / 2$")
+plt.hist(
+    trace["ecc"],
+    50,
+    density=True,
+    histtype="step",
+    weights=1.0 / trace["ecc"],
+    label="$p(e) = 1$",
+)
+plt.xlabel("$e$")
+plt.ylabel("$p(e\,|\,\mathrm{data})$")
+plt.yticks([])
+plt.xlim(0, 0.015)
+_ = plt.legend(fontsize=12)
+plt.show()
+
+
+weights = 1.0 / trace["ecc"]
+print(
+    "for p(e) = e/2: p(e < x) = 0.9 -> x = {0:.5f}".format(
+        corner.quantile(trace["ecc"], [0.9])[0]
+    )
+)
+print(
+    "for p(e) = 1:   p(e < x) = 0.9 -> x = {0:.5f}".format(
+        corner.quantile(trace["ecc"], [0.9], weights=weights)[0]
+    )
+)
+
+
+samples = trace["R1"]
+
+print(
+    "for p(e) = e/2: R1 = {0:.3f} ± {1:.3f}".format(np.mean(samples), np.std(samples))
+)
+
+mean = np.sum(weights * samples) / np.sum(weights)
+sigma = np.sqrt(np.sum(weights * (samples - mean) ** 2) / np.sum(weights))
+print("for p(e) = 1:   R1 = {0:.3f} ± {1:.3f}".format(mean, sigma))
