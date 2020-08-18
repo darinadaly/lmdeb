@@ -382,7 +382,7 @@ _ = ax1.set_title("HD 23642; map model", fontsize=14)
 
 
 # MCMC
-np.random.seed(23642)
+np.random.seed(23642) #arbitrary seed number
 with model:
     trace = xo.sample(
         tune=3500,
